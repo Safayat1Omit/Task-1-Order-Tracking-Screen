@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Order Tracking</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --text:#14171f; --sub:#6b7280; --line:#e5e7eb;
+    --accent:#2563eb; --accent-soft:#eef2ff; --good:#16a34a; --good-soft:#ecfdf3;
+    --warn:#d97706; --warn-soft:#fffbeb; --bad:#dc2626; --bad-soft:#fef2f2;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0d12; --card:#151821; --text:#f1f2f4; --sub:#9aa1ad; --line:#262b36;
+      --accent:#5b8cff; --accent-soft:#1a2340; --good:#34d399; --good-soft:#0d2a20;
+      --warn:#fbbf24; --warn-soft:#2c2109; --bad:#f87171; --bad-soft:#2c1414;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0d12; --card:#151821; --text:#f1f2f4; --sub:#9aa1ad; --line:#262b36;
+    --accent:#5b8cff; --accent-soft:#1a2340; --good:#34d399; --good-soft:#0d2a20;
+    --warn:#fbbf24; --warn-soft:#2c2109; --bad:#f87171; --bad-soft:#2c1414;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  .app{max-width:430px;min-width:320px;margin:0 auto;min-height:100%;background:var(--bg);position:relative;}
+  .topbar{position:sticky;top:0;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
+  .iconbtn{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card);box-shadow:var(--shadow);border:none;color:var(--text);cursor:pointer;}
+  .demo{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none;}
+  .demo::-webkit-scrollbar{display:none;}
+  .chip{flex:0 0 auto;font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--sub);cursor:pointer;white-space:nowrap;}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .content{padding:4px 16px 100px;}
+  .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
+  .status-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex:0 0 auto;}
+  .step{display:flex;gap:12px;position:relative;}
+  .step .dotcol{display:flex;flex-direction:column;align-items:center;width:22px;}
+  .dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 auto;}
+  .stem{width:2px;flex:1;min-height:28px;background:var(--line);}
+  .stem.done{background:var(--good);}
+  .pulse{animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.35);}50%{box-shadow:0 0 0 6px rgba(37,99,235,0);}}
+  .skeleton{background:linear-gradient(90deg,var(--line) 25%,var(--bg) 37%,var(--line) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:8px;}
+  @keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;border-radius:12px;padding:12px 14px;border:none;cursor:pointer;width:100%;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-secondary{background:var(--accent-soft);color:var(--accent);}
+  .btn-outline{background:transparent;color:var(--text);border:1px solid var(--line);}
+  .btn-danger{background:var(--bad-soft);color:var(--bad);}
+  .fab-support{position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top, var(--bg) 60%, transparent);}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;z-index:50;}
+  .sheet{width:100%;max-width:430px;margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow-y:auto;}
+  .hidden{display:none !important;}
+  .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;box-shadow:var(--shadow);}
+  .row{display:flex;align-items:center;justify-content:space-between;}
+  .prod-thumb{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);flex:0 0 auto;}
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <button class="iconbtn" onclick="toast('Back')">←</button>
+    <div style="font-size:15px;font-weight:700;">Order #BD48291</div>
+    <button class="iconbtn" onclick="openSheet('support')">🎧</button>
+  </div>
+
+  <div class="demo" id="demo"></div>
+
+  <div class="content" id="content"></div>
+
+  <div class="fab-support" id="fab"></div>
+</div>
+
+<div class="overlay hidden" id="overlay" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet" id="sheet"></div>
+</div>
+<div id="toastBox"></div>
+
+<script>
+const ORDER = { id:"BD48291", item:"Wireless Over-Ear Headphones — Black", qty:1, price:"৳3,450", eta:"Today, by 8:00 PM", addr:"House 12, Road 4, Chattogram" };
+
+const STEPS = ["Processing","Shipped","Out for delivery","Delivered"];
+
+let state = "outfordelivery";
+
+function icon(name){
+  const m = {
+    check:"✓", box:"📦", truck:"🚚", home:"🏠", clock:"🕒", alert:"⚠️", warn:"❗",
+    ghost:"📭", wifi:"📡", err:"⛔"
+  };
+  return m[name]||"";
+}
+
+function stepIndex(s){
+  return {processing:0, shipped:1, outfordelivery:2, delivered:3, delayed:2, deliverednotreceived:3}[s] ?? 0;
+}
+
+function timelineHTML(current, delayed){
+  return STEPS.map((label,i)=>{
+    const done = i < current, active = i===current, upcoming = i>current;
+    const dotBg = done? "var(--good)": active? (delayed?"var(--warn)":"var(--accent)") : "var(--line)";
+    const dotColor = done||active? "#fff":"var(--sub)";
+    const dotContent = done? icon("check") : (i+1);
+    const last = i===STEPS.length-1;
+    return `<div class="step" style="padding-bottom:${last?0:22}px;">
+      <div class="dotcol">
+        <div class="dot ${active?'pulse':''}" style="background:${dotBg};color:${dotColor};">${dotContent}</div>
+        ${!last?`<div class="stem ${done?'done':''}"></div>`:''}
+      </div>
+      <div style="padding-top:1px;">
+        <div style="font-size:14px;font-weight:${active?700:600};color:${upcoming?'var(--sub)':'var(--text)'};">${label}</div>
+        ${active?`<div style="font-size:12px;color:var(--sub);margin-top:2px;">${delayed? "Running behind schedule" : "In progress"}</div>`:''}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function orderSummaryHTML(){
+  return `<div class="card">
+    <div class="row" style="gap:12px;align-items:flex-start;">
+      <div class="prod-thumb"></div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;line-height:1.3;">${ORDER.item}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:2px;">Qty ${ORDER.qty} · ${ORDER.price}</div>
+      </div>
+      <button class="iconbtn" style="width:28px;height:28px;font-size:14px;" onclick="openSheet('details')">›</button>
+    </div>
+  </div>`;
+}
+
+function statusBanner({icn,bg,fg,title,sub}){
+  return `<div class="card" style="display:flex;gap:12px;align-items:center;">
+    <div class="status-icon" style="background:${bg};color:${fg};">${icn}</div>
+    <div>
+      <div style="font-size:16px;font-weight:700;">${title}</div>
+      <div style="font-size:13px;color:var(--sub);margin-top:2px;">${sub}</div>
+    </div>
+  </div>`;
+}
+
+function actionButtons(list){
+  return `<div style="display:flex;flex-direction:column;gap:10px;">${list.join("")}</div>`;
+}
+
+function render(){
+  const c = document.getElementById("content");
+  const fab = document.getElementById("fab");
+  fab.innerHTML = "";
+  let html = "";
+
+  if(state==="loading"){
+    html = `<div class="card"><div class="skeleton" style="height:52px;border-radius:14px;"></div></div>
+      <div class="card">${[0,1,2,3].map(()=>`<div class="skeleton" style="height:18px;margin-bottom:16px;width:70%;"></div>`).join("")}</div>
+      <div class="card"><div class="skeleton" style="height:52px;"></div></div>`;
+    c.innerHTML = html;
+    return;
+  }
+
+  if(state==="error"){
+    html = `<div class="card" style="text-align:center;padding:36px 16px;">
+      <div style="font-size:40px;">${icon("err")}</div>
+      <div style="font-size:16px;font-weight:700;margin-top:10px;">Couldn't load tracking</div>
+      <div style="font-size:13px;color:var(--sub);margin-top:6px;">Check your connection and try again.</div>
+      <div style="margin-top:16px;"><button class="btn btn-primary" onclick="setState('outfordelivery')">Retry</button></div>
+    </div>`;
+    c.innerHTML = html;
+    return;
+  }
+
+  if(state==="trackingnotavailable"){
+    html = statusBanner({icn:icon("box"),bg:"var(--accent-soft)",fg:"var(--accent)",title:"Order confirmed",sub:"We're preparing your package"});
+    html += `<div class="card" style="text-align:center;padding:28px 16px;">
+      <div style="font-size:36px;">${icon("wifi")}</div>
+      <div style="font-size:14px;font-weight:600;margin-top:10px;">Tracking isn't available yet</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:6px;line-height:1.5;">Live tracking will appear here as soon as your order ships — usually within 24 hours.</div>
+    </div>`;
+    html += orderSummaryHTML();
+    html += `<div class="card" style="display:flex;gap:10px;align-items:center;">
+      <div style="font-size:20px;">${icon("clock")}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;">Estimated ship date</div>
+        <div style="font-size:12.5px;color:var(--sub);">Within 24 hours</div>
+      </div>
+    </div>`;
+    html += actionButtons([`<button class="btn btn-outline" onclick="openSheet('support')">Contact support</button>`]);
+    c.innerHTML = html;
+    fab.innerHTML = "";
+    return;
+  }
+
+  if(state==="delayed"){
+    html = statusBanner({icn:icon("alert"),bg:"var(--warn-soft)",fg:"var(--warn)",title:"Your order is delayed",sub:"New estimate: Tomorrow, by 6:00 PM"});
+    html += `<div class="card">${timelineHTML(stepIndex(state), true)}</div>`;
+    html += `<div class="card" style="background:var(--warn-soft);border:1px solid var(--warn);">
+      <div style="font-size:13px;font-weight:600;color:var(--warn);">Why is this happening?</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.5;">Your package is taking longer than expected in transit. We're monitoring it closely and will notify you of any updates.</div>
+    </div>`;
+    html += orderSummaryHTML();
+    html += actionButtons([
+      `<button class="btn btn-primary" onclick="openSheet('support')">Get delivery update</button>`,
+      `<button class="btn btn-outline" onclick="openSheet('issue')">Report an issue</button>`
+    ]);
+    c.innerHTML = html;
+    return;
+  }
+
+  if(state==="deliverednotreceived"){
+    html = statusBanner({icn:icon("check"),bg:"var(--good-soft)",fg:"var(--good)",title:"Marked as delivered",sub:"Today, 2:14 PM · "+ORDER.addr});
+    html += `<div class="card">${timelineHTML(4, false)}</div>`;
+    html += `<div class="card" style="background:var(--bad-soft);border:1px solid var(--bad);">
+      <div class="row" style="gap:10px;align-items:flex-start;">
+        <div style="font-size:20px;">${icon("warn")}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--bad);">Haven't received your package?</div>
+          <div style="font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.5;">Check with neighbors or a building reception, and look around your delivery location — carriers sometimes leave packages in a safe spot.</div>
+        </div>
+      </div>
+    </div>`;
+    html += orderSummaryHTML();
+    html += actionButtons([
+      `<button class="btn btn-danger" onclick="openSheet('issue')">Report missing package</button>`,
+      `<button class="btn btn-outline" onclick="openSheet('support')">Contact support</button>`
+    ]);
+    c.innerHTML = html;
+    return;
+  }
+
+  // normal flow: processing / shipped / outfordelivery / delivered
+  const idx = stepIndex(state);
+  const titles = {
+    processing:{icn:icon("box"),bg:"var(--accent-soft)",fg:"var(--accent)",title:"Order is processing",sub:"We're getting your package ready"},
+    shipped:{icn:icon("box"),bg:"var(--accent-soft)",fg:"var(--accent)",title:"Order has shipped",sub:"On its way to the carrier hub"},
+    outfordelivery:{icn:icon("truck"),bg:"var(--accent-soft)",fg:"var(--accent)",title:"Out for delivery",sub:"Arriving "+ORDER.eta},
+    delivered:{icn:icon("home"),bg:"var(--good-soft)",fg:"var(--good)",title:"Delivered",sub:"Today, 2:14 PM · "+ORDER.addr},
+  };
+  const t = titles[state];
+  html = statusBanner(t);
+  html += `<div class="card">${timelineHTML(state==="delivered"?4:idx, false)}</div>`;
+  html += `<div class="card" style="display:flex;gap:10px;align-items:center;">
+    <div style="font-size:20px;">${icon("clock")}</div>
+    <div>
+      <div style="font-size:13px;font-weight:600;">Estimated delivery</div>
+      <div style="font-size:12.5px;color:var(--sub);">${ORDER.eta}</div>
+    </div>
+  </div>`;
+  html += orderSummaryHTML();
+  if(state==="delivered"){
+    html += actionButtons([
+      `<button class="btn btn-secondary" onclick="toast('Thanks for your feedback!')">Rate this delivery</button>`,
+      `<button class="btn btn-outline" onclick="openSheet('issue')">Report a problem</button>`
+    ]);
+  } else {
+    html += actionButtons([
+      `<button class="btn btn-outline" onclick="openSheet('issue')">Report a delivery issue</button>`
+    ]);
+  }
+  c.innerHTML = html;
+}
+
+function setState(s){
+  state = s;
+  document.querySelectorAll(".chip").forEach(el=>el.classList.toggle("active", el.dataset.s===s));
+  render();
+}
+
+function buildDemo(){
+  const opts = [
+    ["processing","Processing"],["shipped","Shipped"],["outfordelivery","Out for delivery"],
+    ["delivered","Delivered"],["delayed","Delayed"],["deliverednotreceived","Delivered–not received"],
+    ["trackingnotavailable","Tracking pending"],["loading","Loading"],["error","Error"]
+  ];
+  document.getElementById("demo").innerHTML = opts.map(([s,l])=>
+    `<button class="chip ${s===state?'active':''}" data-s="${s}" onclick="setState('${s}')">${l}</button>`
+  ).join("");
+}
+
+function openSheet(kind){
+  const sheet = document.getElementById("sheet");
+  if(kind==="support"){
+    sheet.innerHTML = `<div style="width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px;"></div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Contact support</div>
+      ${actionButtons([
+        `<button class="btn btn-primary" onclick="toast('Opening chat…')">💬 Chat with support</button>`,
+        `<button class="btn btn-secondary" onclick="toast('Calling support…')">📞 Call support</button>`,
+        `<button class="btn btn-outline" onclick="toast('Email drafted')">✉️ Email support</button>`
+      ])}`;
+  } else if(kind==="issue"){
+    sheet.innerHTML = `<div style="width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px;"></div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Report an issue</div>
+      <div style="font-size:12.5px;color:var(--sub);margin-bottom:14px;">Select what's wrong with order #${ORDER.id}</div>
+      ${actionButtons([
+        `<button class="btn btn-outline" onclick="submitIssue('Package not received')">Package not received</button>`,
+        `<button class="btn btn-outline" onclick="submitIssue('Item damaged')">Item arrived damaged</button>`,
+        `<button class="btn btn-outline" onclick="submitIssue('Wrong item')">Wrong item received</button>`,
+        `<button class="btn btn-outline" onclick="submitIssue('Delivery delayed')">Delivery is delayed</button>`
+      ])}`;
+  } else if(kind==="details"){
+    sheet.innerHTML = `<div style="width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px;"></div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px;">Order details</div>
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--sub);font-size:13px;">Order ID</span><span style="font-size:13px;font-weight:600;">${ORDER.id}</span></div>
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--sub);font-size:13px;">Item</span><span style="font-size:13px;font-weight:600;text-align:right;max-width:60%;">${ORDER.item}</span></div>
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--sub);font-size:13px;">Quantity</span><span style="font-size:13px;font-weight:600;">${ORDER.qty}</span></div>
+      <div class="row" style="margin-bottom:10px;"><span style="color:var(--sub);font-size:13px;">Total</span><span style="font-size:13px;font-weight:600;">${ORDER.price}</span></div>
+      <div class="row" style="margin-bottom:14px;"><span style="color:var(--sub);font-size:13px;">Delivery address</span><span style="font-size:13px;font-weight:600;text-align:right;max-width:60%;">${ORDER.addr}</span></div>
+      <button class="btn btn-outline" onclick="closeSheet()">Close</button>`;
+  }
+  document.getElementById("overlay").classList.remove("hidden");
+}
+function closeSheet(){ document.getElementById("overlay").classList.add("hidden"); }
+function submitIssue(label){
+  closeSheet();
+  toast("Reported: "+label);
+}
+function toast(msg){
+  const box = document.getElementById("toastBox");
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+
+buildDemo();
+render();
+</script>
+</body>
+</html>
